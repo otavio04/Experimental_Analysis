@@ -1,10 +1,10 @@
 import sys
-import random
+import serial
 import pyqtgraph as pg
 from PyQt5 import QtWidgets, QtCore
 
 class GraphApp(QtWidgets.QMainWindow):
-    """Interface gráfica para exibir os dados"""
+    """Interface gráfica para exibir os dados do Arduino"""
     def __init__(self):
         super().__init__()
 
@@ -19,14 +19,14 @@ class GraphApp(QtWidgets.QMainWindow):
         self.layout = QtWidgets.QVBoxLayout()
         self.central_widget.setLayout(self.layout)
 
-        # Criar botão para iniciar o teste
-        self.btn_test = QtWidgets.QPushButton("Iniciar Teste")
-        self.btn_test.clicked.connect(self.start_test)
+        # Criar botão para iniciar a leitura do Arduino
+        self.btn_test = QtWidgets.QPushButton("Iniciar Leitura do Arduino")
+        self.btn_test.clicked.connect(self.start_reading)
         self.layout.addWidget(self.btn_test)
 
         # Criar widget do gráfico
         self.graph_widget = pg.GraphicsLayoutWidget()
-        self.graph_canvas = self.graph_widget.addPlot(title="Leituras do Sensor")
+        self.graph_canvas = self.graph_widget.addPlot(title="Leituras do Sensor (Arduino)")
         self.graph_canvas.setLabel("left", "Valor do Sensor")
         self.graph_canvas.setLabel("bottom", "Tempo")
         self.graph_canvas.showGrid(x=True, y=True)
@@ -35,24 +35,38 @@ class GraphApp(QtWidgets.QMainWindow):
         # Adicionar o gráfico ao layout
         self.layout.addWidget(self.graph_widget)
 
-        # Lista de dados simulados
+        # Lista de dados recebidos do Arduino
         self.data = []
 
         # Criar timer para atualizar o gráfico
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update_plot)
 
-    def start_test(self):
-        """Inicia a geração de dados fictícios"""
-        self.timer.start(100)  # Atualiza o gráfico a cada 100ms
+        # Configurar conexão com o Arduino (Ajuste a porta correta!)
+        try:
+            self.arduino = serial.Serial("COM5", 9600, timeout=1)  # ⬅️ Troque "COM3" pela sua porta!
+        except serial.SerialException:
+            print("⚠️ ERRO: Não foi possível conectar ao Arduino!")
+            self.arduino = None
+
+    def start_reading(self):
+        """Inicia a leitura do Arduino"""
+        if self.arduino:
+            self.timer.start(100)  # Atualiza o gráfico a cada 100ms
 
     def update_plot(self):
-        """Gera dados fictícios e atualiza o gráfico"""
-        if len(self.data) > 100:
-            self.data.pop(0)  # Mantém apenas os últimos 100 pontos
-
-        self.data.append(random.randint(0, 100))  # Gera um valor aleatório
-        self.curve.setData(self.data)
+        """Lê o valor do Arduino e atualiza o gráfico"""
+        if self.arduino:
+            try:
+                line = self.arduino.readline().decode().strip()  # Lê e decodifica a linha
+                if line.isdigit():  # Verifica se é um número
+                    value = int(line)
+                    if len(self.data) > 100:
+                        self.data.pop(0)  # Mantém apenas os últimos 100 pontos
+                    self.data.append(value)
+                    self.curve.setData(self.data)
+            except:
+                pass  # Ignora erros de leitura
 
 # Executando a aplicação
 if __name__ == "__main__":
