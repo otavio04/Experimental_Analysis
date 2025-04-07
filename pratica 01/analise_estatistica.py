@@ -14,6 +14,7 @@ df_numpy = df.to_numpy()
 
 #Variáveis de armazenamento
 data = np.empty(5, dtype=object)
+id = np.empty(3, dtype=object)
 estatistica = np.empty((5, 11), dtype=object)
 dist_normal = np.empty(4, dtype=object)
 colors = np.array(["#0000ff55", "#0000ffaa", "#00ff0055", "#00ff00aa"])
@@ -26,11 +27,16 @@ data[2] = df_numpy[2:70, 3].astype(float)
 data[3] = df_numpy[2:96, 6].astype(float)
 data[4] = df_numpy[2:96, 7].astype(float)
 
+#Pegando o ID de cada observação
+id[0] = np.array(["Resistores AZUIS - LCR (kΩ)", "Resistores AZUIS - Multímetro (kΩ)", "Resistores VERDES - LCR (Ω)", "Resistores VERDES - Multímetro (Ω)"]).astype(str)
+id[1] = df_numpy[2:70, 1].astype(float)
+id[2] = df_numpy[2:96, 5].astype(float)
+
 #Cabeçalho da variável de armazenamento de dados de estatística
 estatistica[0] = ["Média", "Mediana", "Moda", "Frequência Moda", "Desv. Pad. Pop.", "Variância", "Coef. Variação (%)", "Minimo", "Máximo", "Amplitude", "Nº Classes"]
 
 #Criando figura com subplots para exibir os gráficos
-fig, axes = plt.subplots(2, 2, figsize = (12, 8))
+fig, axes = plt.subplots(2, 4, figsize = (12, 8))
 axes = axes.flatten()
 
 for i, dados in enumerate(data):
@@ -65,6 +71,15 @@ for i, dados in enumerate(data):
     x = np.linspace(minimo, maximo, 100)
     pdf = norm.pdf(x, media, std)
     dist_normal[i - 1] = np.array([x, pdf])
+    
+    #Dispersão
+    x_dispersion = np.empty(1, dtype=float)
+    if i < 3:
+        x_dispersion = id[1]
+    else:
+        x_dispersion = id[2]
+
+    y_dispersion = dados
 
     #Armazenando
     estatistica[i] = [round(media, 4), round(mediana, 4), round(moda, 4), moda_frequence, round(std, 4), round(var, 4), round(cv, 4), round(minimo, 4), round(maximo, 4), round(amplitude, 4), n_classes_hist]
@@ -75,6 +90,7 @@ for i, dados in enumerate(data):
     axes[i-1].set_xlabel("Intervalos")
     axes[i-1].set_ylabel("Frequência")
     axes[i-1].set_xticks(limites_bins)
+    axes[i-1].tick_params(axis='x', rotation=45)
     #Colocando hachura
     if (i-1)%2 == 0: #se par
         for rect in patches:
@@ -91,6 +107,15 @@ for i, dados in enumerate(data):
 
     # Plotando a distribuição normal
     axes[i-1].plot(x, pdf, tracado[i - 1], linewidth = 2, label = f"Normal ajustada\nμ={round(media, 4)}, σ={round(std, 4)}")
+
+    #Plotando dispersão
+    axes[i-1 + 4].scatter(x_dispersion, y_dispersion, color = colors[i-1])
+    axes[i-1 + 4].set_title(data[0][i-1])
+    axes[i-1 + 4].set_xlabel("Observações")
+    if i < 3:
+        axes[i-1 + 4].set_ylabel("Resistência medida (kΩ)")
+    else:
+        axes[i-1 + 4].set_ylabel("Resistência medida (Ω)")
 
     #Habilitando legenda dos dados
     axes[i-1].legend()
